@@ -54,6 +54,17 @@ const userSchema = new mongoose.Schema({
     }]
 })
 
+userSchema.methods.toJSON = function () {
+    const user = this
+    const userObject = user.toObject()
+
+    //Remove any private data from the response we send back to the user
+    delete userObject.password
+    delete userObject.tokens
+
+    return userObject
+}
+
 userSchema.methods.generateAuthToken = async function () {
     //Generate Token
     const token = jwt.sign({_id: this._id.toString()}, 'thisisrandom')
