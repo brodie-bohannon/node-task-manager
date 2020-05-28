@@ -18,10 +18,18 @@ router.post('/tasks', auth, async (req, res) => {
 
 // GET /tasks?completed=true
 // GET /tasks?limit==5&skip=10
+// GET /tasks?sortBy=createdAt:desc
 router.get('/tasks', auth, async (req, res) => {
     const match = {}
+    const sort = {}
+
     if (req.query.completed) {
         match.completed = req.query.completed === 'true'
+    }
+
+    if(req.query.sortBy) {
+        const parts = req.query.sortBy.split(':')
+        sort[parts[0]] = parts[1] === 'desc' ? -1 : 1;
     }
 
 
@@ -32,7 +40,9 @@ router.get('/tasks', auth, async (req, res) => {
             options: {
                 // parseInt is provided by JS. Pass in the limit parameter (which is a string) to be parsed
                 // as an int to return that many results and 1 time
-                limit: parseInt(req.query.limit)
+                limit: parseInt(req.query.limit),
+                skip: parseInt(req.query.skip),
+                sort
             }
         }).execPopulate()
         res.send(req.user.tasks)
