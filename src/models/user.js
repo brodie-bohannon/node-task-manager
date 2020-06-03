@@ -73,13 +73,18 @@ userSchema.methods.toJSON = function () {
     //Remove any private data from the response we send back to the user
     delete userObject.password
     delete userObject.tokens
+    
+    //We set up an endpoint (/users/:id/avatar) for getting the profile picture,
+    //so we'll remove it from the user object when we send it back on response because
+    //we don't have to access it from the object
+    delete userObject.avatar
 
     return userObject
 }
 
 userSchema.methods.generateAuthToken = async function () {
     //Generate Token
-    const token = jwt.sign({_id: this._id.toString()}, 'thisisrandom')
+    const token = jwt.sign({_id: this._id.toString()}, process.env.JWT_SECRET)
     //Save the token to the User Document (MongoDB)
     this.tokens = this.tokens.concat({ token })
     //Save the User

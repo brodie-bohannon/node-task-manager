@@ -6,7 +6,7 @@ const taskRouter = require('./routers/task')
 
 //SET UP EXPRESS AND THE PORTS THE SERVER WILL USE
 const app = express()
-const port = process.env.PORT || 3000
+const port = process.env.PORT
 
 //CONFIGURE EXPRESS
 app.use(express.json())

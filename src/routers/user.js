@@ -1,7 +1,12 @@
+//REQUIRES
 const express = require('express')
 const multer = require('multer')
+const sharp = require('sharp')
+const { sendWelcomeEmail, sendCancellationEmail } = require('../emails/account')
 const User = require('../models/user')
 const auth = require('../middleware/auth')
+
+
 const router = new express.Router()
 
 //CREATE A NEW USER
@@ -9,6 +14,7 @@ router.post('/users', async (req, res) => {
     const user = new User(req.body)
     try {
         await user.save()
+        sendWelcomeEmail(user.email, user.firstName)
         const token = await user.generateAuthToken()
         res.status(201).send({ user, token })
     } catch (e) {
@@ -29,6 +35,7 @@ router.post('/users/login', async (req, res) => {
     }
 })
 
+//LOGOUT USER
 router.post('/users/logout', auth, async (req, res) => {
     try {
         req.user.tokens = req.user.tokens.filter((token) => {
@@ -43,6 +50,7 @@ router.post('/users/logout', auth, async (req, res) => {
     }
 })
 
+//LOGOUT ALL INSTANCES OF USER
 router.post('/users/logoutAll', auth, async (req, res) => {
     try {
         // clear array
@@ -82,6 +90,7 @@ router.patch('/users/me', auth, async (req, res) => {
 router.delete('/users/me', auth, async (req, res) => {
     try {
         await req.user.remove()
+        sendCancellationEmail(req.user.email, req.user.firstName)
         res.send(req.user)
     } catch (e) {
         res.status(500).send()
@@ -104,8 +113,13 @@ const upload = multer({
 
 //USER UPLOADS PROFILE PIC
 router.post('/users/me/avatar', auth, upload.single('avatar'), async (req, res) => {
+    //Sharp will modify the uploaded image so we'll save the modified image in this buffer (toBuffer).
+    //We also force all images to be converted as PNGs (png() provided by Sharp)
+    const buffer = await sharp(req.file.buffer).resize({ width: 250, height: 250 }).png().toBuffer()
+    
     //Access the uploaded image and save it on the req object
-    req.user.avatar = req.file.buffer
+    req.user.avatar = buffer
+
     await req.user.save()
     res.send()
 }, (error, req, res, next) => {
@@ -128,7 +142,7 @@ router.get('/users/:id/avatar', async (req, res) => {
             throw new Error()
         }
 
-        res.set('Content-Type', 'image/jpg')
+        res.set('Content-Type', 'image/png')
         res.send(user.avatar)
     } catch (e) {
         res.status(404).send()
